@@ -1,93 +1,50 @@
 [![Build Status](https://travis-ci.org/SolaceSamples/solace-samples-jms.svg?branch=master)](https://travis-ci.org/SolaceSamples/solace-samples-jms)
 
-# Getting Started Examples
-## Solace JMS API
+# Demo Based on Solace Getting Started Tutorial
+## Solace JMS API and Messaging System Required
 
-The "Getting Started" tutorials will get you up to speed and sending messages with Solace technology as quickly as possible. There are three ways you can get started:
+This demo requires a running Solace messaging system to connect with.
+There are two ways you can get started:
 
 - Follow [these instructions](https://cloud.solace.com/learn/group_getting_started/ggs_signup.html) to quickly spin up a cloud-based Solace messaging service for your applications.
 - Follow [these instructions](https://docs.solace.com/Solace-SW-Broker-Set-Up/Setting-Up-SW-Brokers.htm) to start the Solace VMR in leading Clouds, Container Platforms or Hypervisors. The tutorials outline where to download and how to install the Solace VMR.
-- If your company has Solace message routers deployed, contact your middleware team to obtain the host name or IP address of a Solace message router to test against, a username and password to access it, and a VPN in which you can produce and consume messages.
 
-## Contents
+The project includes the latest version of the Solace JMS API implementation at time of creation.
+Note that there are additional files in the project that were inherited from the samples project which are not used for this demo, and can be ignored.
 
-This repository contains code and matching tutorial walk throughs for basic Solace messaging patterns. For a nice introduction to the Solace API and associated tutorials, check out the [Getting Started Home Page](https://dev.solace.com/samples/solace-samples-jms/).
-
-See the individual tutorials for details:
-
-- [Publish/Subscribe](https://dev.solace.com/samples/solace-samples-jms/publish-subscribe): Learn how to set up pub/sub messaging on a Solace VMR.
-- [Persistence](https://dev.solace.com/samples/solace-samples-jms/persistence-with-queues): Learn how to set up persistence for guaranteed delivery.
-- [Request/Reply](https://dev.solace.com/samples/solace-samples-jms/request-reply): Learn how to set up request/reply messaging.
-- [Confirmed Delivery](https://dev.solace.com/samples/solace-samples-jms/confirmed-delivery): Learn how to confirm that your messages are received by a Solace message router.
-- [Topic to Queue Mapping](https://dev.solace.com/samples/solace-samples-jms/topic-to-queue-mapping): Learn how to map existing topics to Solace queues.
-- [Obtaining JMS objects using JNDI](https://dev.solace.com/samples/solace-samples-jms/using-jndi): Learn how to use JNDI as a way to create JMS objects.
-
-## Prerequisites
-
-This tutorial requires the Solace JMS API library. There are multiple options for getting the Solace JMS API. 
-### Option 1: Download the JMS API library
-Download from [here](https://solace.com/downloads/?fwp_downloads=solace-apis). The JMS API is distributed as a zip file containing the required jars, API documentation, and examples.
-
-### Option 2: Using it with Gradle
-`implementation("com.solacesystems:sol-jms:10.10.0")`
-or `implementation group: 'com.solacesystems', name: 'sol-jms', version: '10.10.0'`
-
-### Option 3: Using it with Maven
-```
-<dependency>
-   <groupId>com.solacesystems</groupId>
-   <artifactId>sol-jms</artifactId>
-   <version>10.10.0</version>
-</dependency>
-```
-
-## Build the Samples
+## Build the demo
 
 Just clone and build. For example:
 
   1. clone this GitHub repository
-  1. `./gradlew assemble`
+  2. `./gradlew assemble`
 
-## Running the Samples
+## Run the Demo
 
-To try individual samples, build the project from source and then run samples like the following:
+This demo was created to simulate a specific problem scenario and includes the  scripts below.
 
-    ./build/staged/bin/topicPublisher <msg_backbone_ip:port>
+Start these scripts in the order listed:
 
-The individual tutorials linked above provide full details which can walk you through the samples, what they do, and how to correctly run them to explore Solace messaging.
+    ./build/staged/bin/analyticsDataPipelineSubscriber <host:port> <message-vpn> <client-username> [password]
+    ./build/staged/bin/crewRelaySvcSubscriber <host:port> <message-vpn> <client-username> [password]
+    ./build/staged/bin/crewPayAnalyticsProcessor <host:port> <message-vpn> <client-username> [password]
+    ./build/staged/bin/crewSchedulingAppPublisher <host:port> <message-vpn> <client-username> [password]
 
-## Exploring the Samples
+Tip - You can find above launch parameters in Connect tab of the Cluster Manager page (expand first section)
+   
+The output will show no messages until the last one is launched.
+Messages produced there are consumed by the crewRelaySvcSubscriber and crewPayAnalyticsProcessor applications.
+The processor transforms and republishes on the topic consumed by the analyticsDataPipelineSubscriber.
 
-### Setting up your preferred IDE
+Stop the processor to show no messages flowing to the data pipeline on the second topic.
+Stop the publisher to show no messages flowing to the processor or crewRelaySvcSubscriber.
 
-Using a modern Java IDE provides cool productivity features like auto-completion, on-the-fly compilation, assisted refactoring and debugging which can be useful when you're exploring the samples and even modifying the samples. Follow the steps below for your preferred IDE.
-
-#### Using Eclipse
-
-To generate Eclipse metadata (.classpath and .project files), do the following:
-
-    ./gradlew eclipse
-
-Once complete, you may then import the projects into Eclipse as usual:
-
- *File -> Import -> Existing projects into workspace*
-
-Browse to the *'solace-samples-jms'* root directory. All projects should import
-free of errors.
-
-#### Using IntelliJ IDEA
-
-To generate IDEA metadata (.iml and .ipr files), do the following:
-
-    ./gradlew idea
-
-## Contributing
-
-Please read [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduct, and the process for submitting pull requests to us.
+See related presentation PPT for details of the problem setup for this demo.
 
 ## Authors
 
-See the list of [contributors](https://github.com/SolaceSamples/solace-samples-jms/contributors) who participated in this project.
+This demo was prepared by Karl Ossoinig, and is based on the work done for the solace-samples-jms project.
+See the list of original [contributors](https://github.com/SolaceSamples/solace-samples-jms/contributors) who participated in that project.
 
 ## License
 
