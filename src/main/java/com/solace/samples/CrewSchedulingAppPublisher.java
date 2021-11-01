@@ -17,7 +17,7 @@
  * under the License.
  */
 
-package com.solace.samples.jms.patterns;
+package com.solace.samples;
 
 import com.solacesystems.jms.SolConnectionFactory;
 import com.solacesystems.jms.SolJmsUtility;
@@ -35,10 +35,10 @@ import javax.jms.Session;
 /**
  * A more performant sample that shows an application that publishes.
  */
-public class NonPersistentPublisher {
+public class CrewSchedulingAppPublisher {
     
-    private static final String SAMPLE_NAME = NonPersistentPublisher.class.getSimpleName();
-    private static final String TOPIC_PREFIX = "solace/samples/";  // used as the topic "root"
+    private static final String SAMPLE_NAME = CrewSchedulingAppPublisher.class.getSimpleName();
+    private static final String TOPIC = "swa/crew/payraw";  // topic path to raw pay events
     private static final String API = "JMS";
     private static final int APPROX_MSG_RATE_PER_SEC = 100;
     private static final int PAYLOAD_SIZE = 100;
@@ -96,9 +96,8 @@ public class NonPersistentPublisher {
                     Arrays.fill(payload,(byte)chosenCharacter);  // fill the payload completely with that char
                     message.writeBytes(payload);
                     message.setJMSMessageID(UUID.randomUUID().toString());  // as an example of a header
-                    // dynamic topics!!  "solace/samples/jms/direct/pub/A"
-                    String topicString = new StringBuilder(TOPIC_PREFIX)
-                            .append(API.toLowerCase()).append("/direct/pub/").append(chosenCharacter).toString();
+                    // static topic
+                    String topicString = new StringBuilder(TOPIC).toString();
                     producer.send(session.createTopic(topicString),message);  // send the message
                     msgSentCounter++;  // add one
                     message.clearBody();  // re-use the message
@@ -115,7 +114,7 @@ public class NonPersistentPublisher {
             }
             try {  // try to send a QUIT message to the other applications... (as an example of command-and-control)
                 message.clearBody();
-                producer.send(session.createTopic(TOPIC_PREFIX+"control/quit"),message);
+                producer.send(session.createTopic(TOPIC+"control/quit"),message);
             } catch (JMSException e) {
             }
             publishExecutor.shutdown();

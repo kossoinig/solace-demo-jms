@@ -17,7 +17,7 @@
  * under the License.
  */
 
-package com.solace.samples.jms.patterns;
+package com.solace.samples;
 
 import com.solacesystems.jms.SolConnectionFactory;
 import com.solacesystems.jms.SolJmsUtility;
@@ -39,12 +39,15 @@ import javax.jms.Topic;
  * This class is meant to be used with DirectPub and DirectSub, intercepting the published messages and
  * sending them on to a different topic.
  */
-public class NonPersistentProcessor {
+public class CrewPayAnlyticsProcessor {
 
-    private static final String SAMPLE_NAME = NonPersistentProcessor.class.getSimpleName();
-    private static final String TOPIC_PREFIX = "solace/samples/";  // used as the topic "root"
+    private static final String SAMPLE_NAME = CrewPayAnlyticsProcessor.class.getSimpleName();
+    private static final String TOPIC_IN = "swa/crew/payraw";    // topic path to pay events
+    private static final String TOPIC_OUT = "swa/crew/pay";      // topic path to pay events
     private static final String API = "JMS";
-    
+    private static volatile int msgRecvCounter = 0;              // num messages received
+    private static volatile boolean hasDetectedDiscard = false;  // detected any discards yet?
+
     private static volatile boolean isShutdown = false;  // are we done yet?
 
     /** Main method. */
@@ -79,6 +82,7 @@ public class NonPersistentProcessor {
             }
         });
 
+        // Create a session for interacting with the PubSub+ broker
         Session session = connection.createSession(false,Session.CLIENT_ACKNOWLEDGE);  // ACK mode doesn't matter for Direct only
 
         MessageProducer producer = session.createProducer(null);  // do not bind the producer to a specific topic
@@ -86,64 +90,66 @@ public class NonPersistentProcessor {
         producer.setDisableMessageID(true);                       // don't auto-populate the JMSMessageID
         producer.setDisableMessageTimestamp(true);                // don't set a send timestamp by default
 
-        
-        // Create the subscription topic programmatically, & the message consumer for the subscription topic
-        MessageConsumer consumer = session.createConsumer(session.createTopic(TOPIC_PREFIX + "*/direct/pub/>"));
+        // Create the topic we will be listening on
+        Topic topicIn = session.createTopic(TOPIC_IN);
+        // Create the topic we will be publishing to
+        Topic topicOut = session.createTopic(TOPIC_OUT);
+        // Create a consumer on the inbound topic in our session
+        MessageConsumer consumer = session.createConsumer(topicIn);
+
         consumer.setMessageListener(new MessageListener() {
             @Override
             public void onMessage(Message inboundMsg) {
                 try {
                     // do not print anything to console... too slow!
-                    String inboundTopic = inboundMsg.getJMSDestination().toString();
-                    // looking for topic "solace/samples/*/direct/pub/>"
-                    if (inboundTopic.matches(TOPIC_PREFIX + ".+?/direct/pub/.*")) {  // use of regex to match variable API level
-                        // how to "process" the incoming message? maybe do a DB lookup? add some additional properties? or change the payload?
-                        TextMessage outboundMsg = session.createTextMessage();
-                        final String upperCaseMessage = inboundTopic.toUpperCase();  // as a silly example of "processing"
-                        outboundMsg.setText(upperCaseMessage);
+                    msgRecvCounter++;
+                    TextMessage outboundMsg = session.createTextMessage();
+                        outboundMsg.setText(transformRawEvent(inboundMsg.toString()));
                         if (inboundMsg.getJMSMessageID() != null) {
                             outboundMsg.setJMSMessageID(inboundMsg.getJMSMessageID());  // populate for traceability
                         }
-                        String [] inboundTopicLevels = inboundTopic.split("/",6);
-                        String outboundTopic = new StringBuilder(TOPIC_PREFIX).append(API.toLowerCase())
-                                .append("/direct/upper/").append(inboundTopicLevels[5]).toString();
                         try {
-                            producer.send(session.createTopic(outboundTopic),outboundMsg);
+                            producer.send(topicOut,outboundMsg);
                         } catch (JMSException e) {
                             System.out.println("### Caught at producer.send() " + e);
-                        }
-                    }
-                } catch (JMSException e) {
+
+                }
+            } catch (JMSException e) {
                     System.out.println("### Caught in onMessage() " + e);
                 }
             }
-        });
-        
-        // just an example of using Solace messages for command-and-control:
-        MessageConsumer messageConsumer2 = session.createConsumer(session.createTopic(TOPIC_PREFIX + "control/>"));
-        messageConsumer2.setMessageListener(message -> {  // lambda, MessageListener.onMessage(message)
-            try {
-                if (((Topic)message.getJMSDestination()).getTopicName().endsWith("control/quit")) {
-                    System.out.println(">>> QUIT message received, shutting down.");  // example of command-and-control w/msgs
-                    isShutdown = true;
-                }
-            } catch (JMSException e) {
+
+            private String transformRawEvent(String input) {
+                // append simulated additional values
+                return input + "{calculatedValueContent}";
             }
+
         });
-        
+
         connection.start();  // start receiving messages
 
         System.out.println(API + " " + SAMPLE_NAME + " connected, and running. Press [ENTER] to quit.");
-        while (System.in.available() == 0 && !isShutdown) {  // time to loop!
-            try {
-                Thread.sleep(1000);  // take a pause
-            } catch (InterruptedException e) {
-                // Thread.sleep() interrupted... probably getting shut down
+
+        try {
+            while (System.in.available() == 0 && !isShutdown) {
+                Thread.sleep(1000);  // wait 1 second
+                System.out.printf("%s Received msgs/s: %,d%n",API,msgRecvCounter);  // simple way of calculating message rates
+                msgRecvCounter = 0;
+                if (hasDetectedDiscard) {
+                    System.out.println("*** Egress discard detected *** : "
+                            + SAMPLE_NAME + " unable to keep up with full message rate");
+                    hasDetectedDiscard = false;  // only show the error once per second
+                }
             }
+        } catch (InterruptedException e) {
+            // Thread.sleep() interrupted... probably getting shut down
         }
+        System.out.println("********** We are outside the loop");
         isShutdown = true;
         connection.stop();
-        connection.close();
+        System.out.println("********** after connection stop");
+//        session.close();
+        connection.close();  // could block here for a while.
         System.out.println("Main thread quitting.");
     }
 }

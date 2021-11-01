@@ -17,23 +17,19 @@
  * under the License.
  */
 
-package com.solace.samples.jms.patterns;
+package com.solace.samples;
 
 import com.solacesystems.jms.SolConnectionFactory;
 import com.solacesystems.jms.SolJmsUtility;
 import com.solacesystems.jms.message.SolMessage;
-import javax.jms.Connection;
-import javax.jms.JMSException;
-import javax.jms.Message;
-import javax.jms.MessageConsumer;
-import javax.jms.MessageListener;
-import javax.jms.Session;
+
+import javax.jms.*;
 
 /** This is a more detailed subscriber sample. */
-public class NonPersistentSubscriber {
+public class AnalyticsDataPipelineSubscriber {
 
-    private static final String SAMPLE_NAME = NonPersistentSubscriber.class.getSimpleName();
-    private static final String TOPIC_PREFIX = "solace/samples/";  // used as the topic "root"
+    private static final String SAMPLE_NAME = AnalyticsDataPipelineSubscriber.class.getSimpleName();
+    private static final String TOPIC = "swa/crew/pay";  // topic path to pay events
     private static final String API = "JMS";
     
     private static volatile int msgRecvCounter = 0;              // num messages received
@@ -70,11 +66,14 @@ public class NonPersistentSubscriber {
                 isShutdown = true;  // bail out
             }
         });
-        
-        Session session = connection.createSession(false,Session.CLIENT_ACKNOWLEDGE);  // ACK mode doesn't matter for Direct only
 
-        // Create the subscription topic programmatically, & the message consumer for the subscription topic
-        MessageConsumer consumer = session.createConsumer(session.createTopic(TOPIC_PREFIX + "*/direct/>"));
+        // Create a session for interacting with the PubSub+ broker
+        Session session = connection.createSession(false,Session.CLIENT_ACKNOWLEDGE);  // ACK mode doesn't matter for Direct only
+        // Create the topic we will be listening on
+        Topic topic = session.createTopic(TOPIC);
+        // Create a consumer on that topic in our session
+        MessageConsumer consumer = session.createConsumer(topic);
+
         consumer.setMessageListener(new MessageListener() {
             @Override
             public void onMessage(Message message) {
@@ -93,18 +92,6 @@ public class NonPersistentSubscriber {
             }
         });
         
-        // just an example of using Solace messages for command-and-control:
-        MessageConsumer messageConsumer2 = session.createConsumer(session.createTopic(TOPIC_PREFIX + "control/>"));
-        messageConsumer2.setMessageListener(message -> {  // lambda, MessageListener.onMessage(message)
-            try {
-                if (message.getJMSDestination().toString().endsWith("control/quit")) {
-                    System.out.println(">>> QUIT message received, shutting down.");  // example of command-and-control w/msgs
-                    isShutdown = true;
-                }
-            } catch (JMSException e) {
-            }
-        });
-
         connection.start();
 
         System.out.println(API + " " + SAMPLE_NAME + " connected, and running. Press [ENTER] to quit.");
