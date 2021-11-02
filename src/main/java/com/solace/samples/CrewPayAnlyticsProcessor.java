@@ -21,16 +21,8 @@ package com.solace.samples;
 
 import com.solacesystems.jms.SolConnectionFactory;
 import com.solacesystems.jms.SolJmsUtility;
-import javax.jms.Connection;
-import javax.jms.DeliveryMode;
-import javax.jms.JMSException;
-import javax.jms.Message;
-import javax.jms.MessageConsumer;
-import javax.jms.MessageListener;
-import javax.jms.MessageProducer;
-import javax.jms.Session;
-import javax.jms.TextMessage;
-import javax.jms.Topic;
+
+import javax.jms.*;
 
 /**
  * A Processor is a microservice or application that receives a message, does something with the info,
@@ -42,8 +34,8 @@ import javax.jms.Topic;
 public class CrewPayAnlyticsProcessor {
 
     private static final String SAMPLE_NAME = CrewPayAnlyticsProcessor.class.getSimpleName();
-    private static final String TOPIC_IN = "swa/crew/payraw";    // topic path to pay events
-    private static final String TOPIC_OUT = "swa/crew/pay";      // topic path to pay events
+    private static final String TOPIC = "swa/crew/pay";      // topic path to pay events
+    private static final String QUEUE = "CrewPayAnalyticsSvcQueue";  // queue path to payraw events
     private static final String API = "JMS";
     private static volatile int msgRecvCounter = 0;              // num messages received
     private static volatile boolean hasDetectedDiscard = false;  // detected any discards yet?
@@ -90,12 +82,12 @@ public class CrewPayAnlyticsProcessor {
         producer.setDisableMessageID(true);                       // don't auto-populate the JMSMessageID
         producer.setDisableMessageTimestamp(true);                // don't set a send timestamp by default
 
-        // Create the topic we will be listening on
-        Topic topicIn = session.createTopic(TOPIC_IN);
+        // Create the queue programmatically and the corresponding router resource
+        // will also be created dynamically because DynamicDurables is enabled.
+        Queue queue = session.createQueue(QUEUE);        // Create a consumer on the inbound topic in our session
+        MessageConsumer consumer = session.createConsumer(queue);
         // Create the topic we will be publishing to
-        Topic topicOut = session.createTopic(TOPIC_OUT);
-        // Create a consumer on the inbound topic in our session
-        MessageConsumer consumer = session.createConsumer(topicIn);
+        Topic topic = session.createTopic(TOPIC);
 
         consumer.setMessageListener(new MessageListener() {
             @Override
@@ -109,7 +101,8 @@ public class CrewPayAnlyticsProcessor {
                             outboundMsg.setJMSMessageID(inboundMsg.getJMSMessageID());  // populate for traceability
                         }
                         try {
-                            producer.send(topicOut,outboundMsg);
+                            producer.send(topic,outboundMsg);
+                            inboundMsg.acknowledge();
                         } catch (JMSException e) {
                             System.out.println("### Caught at producer.send() " + e);
 

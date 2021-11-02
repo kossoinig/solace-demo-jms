@@ -29,7 +29,7 @@ import javax.jms.*;
 public class AnalyticsDataPipelineSubscriber {
 
     private static final String SAMPLE_NAME = AnalyticsDataPipelineSubscriber.class.getSimpleName();
-    private static final String TOPIC = "swa/crew/pay";  // topic path to pay events
+    private static final String QUEUE = "analyticsDataPipelineQueue";  // topic path to pay events
     private static final String API = "JMS";
     
     private static volatile int msgRecvCounter = 0;              // num messages received
@@ -69,25 +69,22 @@ public class AnalyticsDataPipelineSubscriber {
 
         // Create a session for interacting with the PubSub+ broker
         Session session = connection.createSession(false,Session.CLIENT_ACKNOWLEDGE);  // ACK mode doesn't matter for Direct only
-        // Create the topic we will be listening on
-        Topic topic = session.createTopic(TOPIC);
+        // Create the queue programmatically and the corresponding router resource
+        // will also be created dynamically because DynamicDurables is enabled.
+        Queue queue = session.createQueue(QUEUE);
         // Create a consumer on that topic in our session
-        MessageConsumer consumer = session.createConsumer(topic);
+        MessageConsumer consumer = session.createConsumer(queue);
 
         consumer.setMessageListener(new MessageListener() {
             @Override
             public void onMessage(Message message) {
                 // do not print anything to console... too slow!
                 msgRecvCounter++;
-                if (((SolMessage)message).getMessage().getDiscardIndication()) {
-                    // since Direct messages, check if there have been any lost any messages
-                    // If the consumer is being over-driven (i.e. publish rates too high), the broker might discard some messages for this consumer
-                    // check this flag to know if that's happened
-                    // to avoid discards:
-                    //  a) reduce publish rate
-                    //  b) use multiple-threads or shared subscriptions for parallel processing
-                    //  c) increase size of consumer's D-1 egress buffers (check client-profile) (helps more with bursts)
-                    hasDetectedDiscard = true;  // set my own flag
+                String msg = message.toString();
+                try {
+                    message.acknowledge();
+                } catch (JMSException e) {
+                    System.out.println("caught JMSException "+ e);
                 }
             }
         });
