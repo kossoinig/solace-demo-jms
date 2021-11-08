@@ -73,21 +73,10 @@ sourceSets {
 }
 
 def scripts = [
-    'HelloWorld':'com.solace.samples.jms.HelloWorld',
-    'DirectProcessor':'com.solace.samples.jms.patterns.DirectProcessor',
-    'DirectPublisher':'com.solace.samples.jms.patterns.DirectPublisher',
-    'DirectSubscriber':'com.solace.samples.jms.patterns.DirectSubscriber',
-    'DirectReplier':'com.solace.samples.jms.patterns.DirectReplier',
-    'topicPublisher': 'com.solace.samples.TopicPublisher',
-    'topicSubscriber':'com.solace.samples.TopicSubscriber',
-    'queueProducer':'com.solace.samples.QueueProducer',
-    'queueConsumer':'com.solace.samples.QueueConsumer',
-    'basicRequestor':'com.solace.samples.BasicRequestor',
-    'basicReplier':'com.solace.samples.BasicReplier',
-    'queueProducerJNDI':'com.solace.samples.QueueProducerJNDI',
-    'queueConsumerJNDI':'com.solace.samples.QueueConsumerJNDI',
-    'extJndiImport':'com.solace.samples.ExtJndiImport',
-    'extJndiTest':'com.solace.samples.ExtJndiTest'
+    'AnalyticsDataPipelineSubscriber':'com.solace.demo.DirectProcessor',
+    'CrewPayAnalyticsProcessor':'com.solace.demo.DirectPublisher',
+    'CrewRelaySvcSubscriber':'com.solace.demo.DirectSubscriber',
+    'CrewSchedulingAppPublisher':'com.solace.demo.DirectReplier'
 ]
 
 scripts.each() { scriptName, className ->

@@ -17,7 +17,7 @@
  * under the License.
  */
 
-package com.solace.samples;
+package com.solace.demo;
 
 import com.solacesystems.jms.SolConnectionFactory;
 import com.solacesystems.jms.SolJmsUtility;
